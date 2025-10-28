@@ -3,6 +3,7 @@ import './App.css';
 import '98.css'
 
 function App() {
+  const maxTasks = 15;
   const [tasks, setTasks] = useState([
     {
       name : "Calculus Class",
@@ -48,9 +49,9 @@ function App() {
       time : now.toLocaleTimeString(),
       status : true,
     };
-    ((tasks.length < 12) && textBox.value) && setTasks([...tasks, addedTask]);
+    ((tasks.length < maxTasks) && textBox.value) && setTasks([...tasks, addedTask]);
     (textBox.value || alert("nah bruh"));
-    (textBox.value && ((tasks.length < 12) || (alert("max is 12"))));
+    (textBox.value && ((tasks.length < maxTasks) || (alert("max is 15"))));
     setNewTask("");
     textBox.value = "";
   }
@@ -103,7 +104,7 @@ function App() {
           <button aria-label="Close"></button>
         </div>
       </div>
-      <main className='pl-2 pt-14 w-11/12 lg:w-[61vw]'>
+      <main className='pl-2 pt-14 w-11/12 xs:w-[61vw]'>
         <div className='flex flex-col'>
             {/* User Prompt */}
           <label for="text20">Enter your prompt:</label>
@@ -117,9 +118,9 @@ function App() {
           <div className='w-[100%] flex flex-col gap-y-2'>
             <p className='mb-[-5px]'>Your To-Do List</p>
             <hr/>
-            <div id="taskList" className={`flex flex-col h-fit ${tasks.length <= 9 ? "w-fit" : "w-fit lg:h-[750px] min-[1100px]:h-[625px] min-[1450px]:h-[400px]" } gap-0 lg:flex-wrap lg:h-[400px]`}>
+            <div id="taskList" className={`flex flex-col h-fit ${tasks.length <= 12 ? "w-fit" : "w-fit min-[750px]:h-[1000px] min-[1100px]:h-[625px] min-[1450px]:h-[575px] min-[1800px]:h-[375px]" } gap-0 min-[750px]:flex-wrap min-[750px]:h-[400px]`}>
               {tasks.map((currentTask, index) =>
-              <div id={`task${index}`} className="window min-w-fit min-h-fit w-[90vw] lg:w-[350px] lg:h-[125px] hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
+              <div id={`task${index}`} className="window min-w-fit min-h-fit w-[90vw] min-[750px]:w-[350px] min-[750px]:h-[125px] hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
                 <div className={`title-bar text-white grid grid-flow-col grid-rows-1 ${!currentTask.status && "inactive"}`}>
                   <div className="title-bar-text w-[80%]"><p className={`break-words break-all ${!currentTask.status && "line-through"}`}>{index+1}.&nbsp;{currentTask.name}</p></div>
                   <div className="title-bar-controls">
