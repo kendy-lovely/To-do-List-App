@@ -1,51 +1,30 @@
-import React, {useState } from 'react'
+import React, {useState, useEffect } from 'react'
 import './App.css';
 import '98.css'
 // import axios from 'axios';
 
 function App() {
-  const maxTasks = 16;
-  const [tasks, setTasks] = useState([
-    {
-      name : "Calculus Class",
-      desc : "Attending the Calculus Class at K.207",
-      date : "20 Oktober 2025",
-      time : "8:00 AM",
-      status : true,
-    },
-    {
-      name : "Physics Class",
-      desc : "Attending the Physics Class at K.102",
-      date : "20 Oktober 2025",
-      time : "1:00 PM",
-      status : true,
-    },
-    {
-      name : "Computational Thinking Class",
-      desc : "Attending the Computational Thinking Class at GK.208",
-      date : "21 Oktober 2025",
-      time : "10:00 AM",
-      status : true,
-    },
-    {
-      name : "PDT Class",
-      desc : "Attending the PDT Class at K.204",
-      date : "23 Oktober 2025",
-      time : "8:00 AM",
-      status : true,
-    },
-  ])
+  const BASE_URL = "https://nano-gpt.com/api/v1";
+  const API_KEY = process.env.REACT_APP_NANOGPT_API_KEY;
+  const maxTasks = 99;
+  const [tasks, setTasks] = useState([])
   const [filteredTasks, setFilteredTasks] = useState([...tasks])
   const [searchText, setSearchText] = useState("")
-
   const [newTask, setNewTask] = useState("")
-
   const handleInputChange = (e) => {setNewTask(e.target.value);}
   const handleSearch = (e) => {setSearchText(e.target.value)}
+  const handleSearchFilter = () => {
+    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(escaped, "i");
+    setFilteredTasks(tasks.filter(item => pattern.test(item.name)));
+  }
 
   function handleToggle(index){
     const updatedTasks = tasks.map((task, i) => i === index ? { ...task, status: !task.status } : task );
     setTasks(updatedTasks);
+    setFilteredTasks(updatedTasks);
+    console.log("Updated tasks:", updatedTasks);
+    localStorage.setItem('taskArray', JSON.stringify(updatedTasks));
   }
 
   function killTask(index) {
@@ -54,82 +33,112 @@ function App() {
       killedTask.style.translate = "-25px";
       killedTask.style.opacity = 0;
       setTimeout(() => {
-        setTasks(prevTasks => prevTasks.filter((_, i) => i !== index));
+        setTasks(prevTasks => {
+          const newTasks = prevTasks.filter((_, i) => i !== index);
+          console.log("Updated tasks:", newTasks);
+          localStorage.setItem('taskArray', JSON.stringify(newTasks));
+          return newTasks;
+        });
+        setFilteredTasks(prevTasks => {
+          const newTasks = prevTasks.filter((_, i) => i !== index);
+          return newTasks;
+        });
         killedTask.style.translate = "0px";
         killedTask.style.opacity = 1;
       }, 200);
     }
   } 
 
-// const response = await axios.post(
-//       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-//       {
-//         contents: [
-//           {
-//             parts: [
-//               {
-//                 text: newTask //bisa ditulis untuk prompt yang dimau
-//               },
-//             ],
-//           },
-//         ],
-//       },
-//       {
-//         headers: {
-//           'Content-Type': 'application/json',
-//           'x-goog-api-key': AIzaSyBeFirQmYc1AvBNC_5y00S5ImXRfVkpydI",
-//         },
-//       }
-//     );
+  useEffect(() => {
+    const taskArray = localStorage.getItem('taskArray');
+    console.log(JSON.stringify(taskArray));
+    if (taskArray && taskArray.length > 0) {
+      const parsedTasks = JSON.parse(taskArray);
+      setTasks(parsedTasks);
+      setFilteredTasks(parsedTasks);
+    }
+  }, []);
 
-//   try {
-//     const aiResponse = response.data.candidates[0].content.parts[0].text.trim();
+  async function callAI(task) {
+    const now = new Date();
+    const nowDate = now.toLocaleDateString()
+    const nowTime = now.toLocaleTimeString()
+    console.log(nowDate, nowTime)
+    const content = 
+      `
+      Write back a json formatted for an API, the format should be like 
+      {
+        "name":"[Generate a name here!]",
+        "desc":"[Generate a description here! Use correct grammar in the language of the user prompt. Make it concise, target 1 sentence.]",
+        "date":"[Generate a date in Month date, Year format.]",
+        "time":"[Generate a time in HH:mm AM/PM format, NO SECONDS.]",
+        "status":[Always true, unless stated otherwise.],
+      }
+      ONLY OUTPUT A JSON. IT WILL BREAK IF YOU DON'T OUTPUT PURE JSON.
+      The user prompt is: ${task}
+      If the type of event is not mentioned, always assume it's a class.
+      The current date and time is: ${nowDate}, ${nowTime}.
+      Use the date and time as context to the event, do NOT use it directly.
+      `
+      console.log(content)
+    const response = await fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'Meta-Llama-3-1-8B-Instruct-FP8',
+            messages: [
+                { role: 'user', content: content}
+            ]
+        })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Error from API:', data);
+    }
+    console.log(data)
+    console.log(data.choices[0].message.content)
+    return(data.choices[0].message.content)
+  }
 
-
-//     if (aiResponse && aiResponse !== 'current_time') {
-//       // Clean the response
-//       let cleanTime = aiResponse.replace(/[^\\d:APM\\s]/gi, '');
-
-
-//       // Try to parse the time
-//       const parsedTime = cleanTime.toLocaleTimeString;
-//       if (parsedTime) {
-//         var extractedTime = parsedTime;
-//       }
-//     }
-//   } catch (parseError) {
-//     console.log(parseError)
-//   }
   const updateTasks = (addedTask) => {
     setTasks([...tasks, addedTask]);
     setFilteredTasks([...tasks, addedTask]);
+    console.log(JSON.stringify([...tasks, addedTask]))
+    localStorage.setItem('taskArray', JSON.stringify([...tasks, addedTask]));
   }
 
 
-  const handleAddTask = () => {
+  async function handleAddTask() {
     let textBox = document.getElementById("text20");
     let searchBox = document.getElementById("text17");
-    const now = new Date();
-    const addedTask = {
-      name : newTask,
-      desc : newTask,
-      date : now.toLocaleDateString(),
-      time : now.toLocaleTimeString(),
-      status : true,
-    };
-    ((tasks.length < maxTasks) && textBox.value) && updateTasks(addedTask);
-    (textBox.value || alert("nah bruh"));
+    if ((tasks.length < maxTasks) && textBox.value) {
+      const placeholderTask = {
+        name : "Generating...",
+        desc : "Generating...",
+        date : "Generating...",
+        time : "Generating...",
+        status : false,
+      };
+      updateTasks(placeholderTask);
+      let taskAI = await callAI(newTask)
+      let taskStuff = await JSON.parse(taskAI)
+      const addedTask = {
+        name : taskStuff.name,
+        desc : taskStuff.desc,
+        date : taskStuff.date,
+        time : taskStuff.time,
+        status : taskStuff.status,
+      };
+      updateTasks(addedTask);
+    }
+    textBox.value || alert("nah bruh");
     (textBox.value && ((tasks.length < maxTasks) || (alert(`max is ${maxTasks}`))));
     setNewTask("");
     textBox.value = "";
     searchBox.value = "";
-
-  }
-
-  const handleSearchFilter = () => {
-    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = new RegExp(escaped, "i");
-    setFilteredTasks(tasks.filter(item => pattern.test(item.name)));
   }
   /* const divArray = []
   
@@ -162,7 +171,7 @@ function App() {
           <button aria-label="Close"></button>
         </div>
       </div>
-      <main className='pl-2 pt-14 w-11/12 xs:w-[61vw]'>
+      <main className='pl-2 pt-14 w-11/12'>
         <div className='flex flex-col'>
             {/* User Prompt */}
           <label for="text17">Search:</label>
@@ -175,13 +184,13 @@ function App() {
         {/* Spacing */}
         <div className='p-6'/>
         {/* To-Do List */}
-        <div className='flex flex-col'>
-          <div className='w-[100%] flex flex-col gap-y-2'>
-            <p className='mb-[-5px]'>Your To-Do List</p>
+        <div className='flex flex-col w-[100%] min-[1350px]:w-[1100px] min-[1650px]:w-[1450px] h-fit'>
+          <div className='flex flex-col gap-y-2'>
+            <strong className='mb-[-5px]'>Your To-Do List</strong>
             <hr/>
-            <div id="taskList" className={`flex flex-col h-fit ${tasks.length <= 12 ? "w-fit" : "w-fit min-[750px]:h-[1100px] min-[1100px]:h-[750px] min-[1450px]:h-[575px] min-[1800px]:h-[375px]" } gap-0 min-[750px]:flex-wrap min-[750px]:h-[400px]`}>
+            <div id="taskList" className={`flex flex-col-reverse w-[100%] h-full flex-wrap lg:flex-row ${filteredTasks.length === 0 && "items-center content-center"}`}>
               {filteredTasks.map((currentTask, index) =>
-              <div id={`task${index}`} className="window min-w-fit min-h-fit w-[90vw] min-[750px]:w-[350px] min-[750px]:h-[125px] hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
+              <div id={`task${index}`} className="window w-full lg:w-[350px] min-h-fit hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
                 <div className={`title-bar text-white grid grid-flow-col grid-rows-1 ${!currentTask.status && "inactive"}`}>
                   <div className="title-bar-text w-[80%]"><p className={`break-words break-all ${!currentTask.status && "line-through"}`}>{index+1}.&nbsp;{currentTask.name}</p></div>
                   <div className="title-bar-controls">
@@ -191,21 +200,22 @@ function App() {
                   </div>
                 </div>
               <span className="text-black ml-2 mt-2 mb-2 inline-block">
-                  Description: {currentTask.desc}<br/>
+                  <b>{currentTask.desc}</b><br/><br/>
                   Date: {currentTask.date}<br/>
                   Time: {currentTask.time}<br/>
-                  Status: {currentTask.status ? "Active" : "Done!"}<br/>
+                  Status: {currentTask.status ? "Active" : "Done!"}<br/><br/>
                   <input type="checkbox" id={index} checked={!currentTask.status} onChange={() => handleToggle(index)}/>
                   <label for={index}>Finished?</label>
                 </span>
               </div>
               )}
+              {filteredTasks.length === 0 && <div className="pt-1"><strong>No tasks here!</strong></div>}
             </div>
           </div>
         </div>
-        <div className="status-field-border mb-4 mt-64 w-full">
+        <div className="status-field-border w-[90%] mt-[400px]">
           <div className="p-2">
-            <p>Made with love by kendy.online, with help from <a href="https://exerciseftui.com/">EXERCISE</a>.</p>
+            <p>Made with love by Rafaadzan Danendra, with help from <a href="https://exerciseftui.com/">EXERCISE</a>.</p>
           </div>
         </div>
       </main>
