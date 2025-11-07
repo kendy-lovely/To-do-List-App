@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, {useState } from 'react'
 import './App.css';
 import '98.css'
-import axios from 'axios';
+// import axios from 'axios';
 
-async function App() {
-  const maxTasks = 15;
+function App() {
+  const maxTasks = 16;
   const [tasks, setTasks] = useState([
     {
       name : "Calculus Class",
@@ -35,59 +35,13 @@ async function App() {
       status : true,
     },
   ])
+  const [filteredTasks, setFilteredTasks] = useState([...tasks])
+  const [searchText, setSearchText] = useState("")
 
   const [newTask, setNewTask] = useState("")
 
-  useEffect(() => {
-    localStorage.setItem(tasks.name, tasks)
-  }, [tasks])
-
   const handleInputChange = (e) => {setNewTask(e.target.value);}
-
-  const handleAddTask = async () => {
-    const response = await axios.post(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: ""
-              },
-            ],
-          },
-        ],
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY,
-        },
-      }
-    );
-    const aiText = response.data.candidates[0].content.parts[0].text.trim();
-    const cleanJson = aiText
-      .replace(/```json/g, ``)
-      .replace(/```/g, ``)
-      .trim();
-    if (!netTask) TransformStreamDefaultController;
-    const today = new Date();
-    extractedTas
-    let textBox = document.getElementById("text20");
-    const now = new Date();
-    const addedTask = {
-      name : newTask,
-      desc : newTask,
-      date : now.toLocaleDateString(),
-      time : now.toLocaleTimeString(),
-      status : true,
-    };
-    ((tasks.length < maxTasks) && textBox.value) && setTasks([...tasks, addedTask]);
-    (textBox.value || alert("nah bruh"));
-    (textBox.value && ((tasks.length < maxTasks) || (alert("max is 15"))));
-    setNewTask("");
-    textBox.value = "";
-  }
+  const handleSearch = (e) => {setSearchText(e.target.value)}
 
   function handleToggle(index){
     const updatedTasks = tasks.map((task, i) => i === index ? { ...task, status: !task.status } : task );
@@ -105,29 +59,78 @@ async function App() {
         killedTask.style.opacity = 1;
       }, 200);
     }
+  } 
+
+// const response = await axios.post(
+//       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+//       {
+//         contents: [
+//           {
+//             parts: [
+//               {
+//                 text: newTask //bisa ditulis untuk prompt yang dimau
+//               },
+//             ],
+//           },
+//         ],
+//       },
+//       {
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'x-goog-api-key': AIzaSyBeFirQmYc1AvBNC_5y00S5ImXRfVkpydI",
+//         },
+//       }
+//     );
+
+//   try {
+//     const aiResponse = response.data.candidates[0].content.parts[0].text.trim();
+
+
+//     if (aiResponse && aiResponse !== 'current_time') {
+//       // Clean the response
+//       let cleanTime = aiResponse.replace(/[^\\d:APM\\s]/gi, '');
+
+
+//       // Try to parse the time
+//       const parsedTime = cleanTime.toLocaleTimeString;
+//       if (parsedTime) {
+//         var extractedTime = parsedTime;
+//       }
+//     }
+//   } catch (parseError) {
+//     console.log(parseError)
+//   }
+  const updateTasks = (addedTask) => {
+    setTasks([...tasks, addedTask]);
+    setFilteredTasks([...tasks, addedTask]);
   }
 
-  const response = await axios.post(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: ""
-              },
-            ],
-          },
-        ],
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY,
-        },
-      }
-    );
 
+  const handleAddTask = () => {
+    let textBox = document.getElementById("text20");
+    let searchBox = document.getElementById("text17");
+    const now = new Date();
+    const addedTask = {
+      name : newTask,
+      desc : newTask,
+      date : now.toLocaleDateString(),
+      time : now.toLocaleTimeString(),
+      status : true,
+    };
+    ((tasks.length < maxTasks) && textBox.value) && updateTasks(addedTask);
+    (textBox.value || alert("nah bruh"));
+    (textBox.value && ((tasks.length < maxTasks) || (alert(`max is ${maxTasks}`))));
+    setNewTask("");
+    textBox.value = "";
+    searchBox.value = "";
+
+  }
+
+  const handleSearchFilter = () => {
+    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(escaped, "i");
+    setFilteredTasks(tasks.filter(item => pattern.test(item.name)));
+  }
   /* const divArray = []
   
   for (let i = 0; i < task.length; i++) {
@@ -162,6 +165,9 @@ async function App() {
       <main className='pl-2 pt-14 w-11/12 xs:w-[61vw]'>
         <div className='flex flex-col'>
             {/* User Prompt */}
+          <label for="text17">Search:</label>
+          <input id="text17" type="text" onChange={handleSearch}></input>
+          <button id="submit" className='w-[10%] mt-5 mb-10' onClick={() => handleSearchFilter()}>Search</button>
           <label for="text20">Enter your prompt:</label>
           <textarea id="text20" rows="4" className='w-[100%]' onChange={handleInputChange}/>
           <button id='submit' className='w-[10%] mt-5' onClick={() => handleAddTask()}>Submit</button>
@@ -173,8 +179,8 @@ async function App() {
           <div className='w-[100%] flex flex-col gap-y-2'>
             <p className='mb-[-5px]'>Your To-Do List</p>
             <hr/>
-            <div id="taskList" className={`flex flex-col h-fit ${tasks.length <= 12 ? "w-fit" : "w-fit min-[750px]:h-[1000px] min-[1100px]:h-[625px] min-[1450px]:h-[575px] min-[1800px]:h-[375px]" } gap-0 min-[750px]:flex-wrap min-[750px]:h-[400px]`}>
-              {tasks.map((currentTask, index) =>
+            <div id="taskList" className={`flex flex-col h-fit ${tasks.length <= 12 ? "w-fit" : "w-fit min-[750px]:h-[1100px] min-[1100px]:h-[750px] min-[1450px]:h-[575px] min-[1800px]:h-[375px]" } gap-0 min-[750px]:flex-wrap min-[750px]:h-[400px]`}>
+              {filteredTasks.map((currentTask, index) =>
               <div id={`task${index}`} className="window min-w-fit min-h-fit w-[90vw] min-[750px]:w-[350px] min-[750px]:h-[125px] hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
                 <div className={`title-bar text-white grid grid-flow-col grid-rows-1 ${!currentTask.status && "inactive"}`}>
                   <div className="title-bar-text w-[80%]"><p className={`break-words break-all ${!currentTask.status && "line-through"}`}>{index+1}.&nbsp;{currentTask.name}</p></div>
