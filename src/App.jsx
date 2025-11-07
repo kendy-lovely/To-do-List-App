@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import './App.css';
 import '98.css'
+import axios from 'axios';
 
-function App() {
+async function App() {
   const maxTasks = 15;
   const [tasks, setTasks] = useState([
     {
@@ -37,9 +38,41 @@ function App() {
 
   const [newTask, setNewTask] = useState("")
 
+  useEffect(() => {
+    localStorage.setItem(tasks.name, tasks)
+  }, [tasks])
+
   const handleInputChange = (e) => {setNewTask(e.target.value);}
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
+    const response = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: ""
+              },
+            ],
+          },
+        ],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY,
+        },
+      }
+    );
+    const aiText = response.data.candidates[0].content.parts[0].text.trim();
+    const cleanJson = aiText
+      .replace(/```json/g, ``)
+      .replace(/```/g, ``)
+      .trim();
+    if (!netTask) TransformStreamDefaultController;
+    const today = new Date();
+    extractedTas
     let textBox = document.getElementById("text20");
     const now = new Date();
     const addedTask = {
@@ -73,6 +106,28 @@ function App() {
       }, 200);
     }
   }
+
+  const response = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: ""
+              },
+            ],
+          },
+        ],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY,
+        },
+      }
+    );
+
   /* const divArray = []
   
   for (let i = 0; i < task.length; i++) {
