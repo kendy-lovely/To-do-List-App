@@ -7,6 +7,7 @@ function App() {
   const BASE_URL = "https://nano-gpt.com/api/v1";
   const API_KEY = process.env.REACT_APP_NANOGPT_API_KEY;
   const maxTasks = 99;
+  const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   const [tasks, setTasks] = useState([])
   const [filteredTasks, setFilteredTasks] = useState([...tasks])
   const [searchText, setSearchText] = useState("")
@@ -63,21 +64,23 @@ function App() {
     const now = new Date();
     const nowDate = now.toLocaleDateString()
     const nowTime = now.toLocaleTimeString()
+    let day = weekday[now.getDay()];
     console.log(nowDate, nowTime)
     const content = 
       `
+      You are a planner, you are input a prompt, and you output a task.
       Write back a json formatted for an API, the format should be like 
       {
-        "name":"[Generate a name here!]",
+        "name":"[Generate a name here! Keep it short, 4-5 words maximum.]",
         "desc":"[Generate a description here! Use correct grammar in the language of the user prompt. Make it concise, target 1 sentence.]",
-        "date":"[Generate a date in Month date, Year format.]",
+        "date":"[Generate a date in 'Day, Month Date, Year' (i.e. Friday, November 14th, 2025) format.]",
         "time":"[Generate a time in HH:mm AM/PM format, NO SECONDS.]",
         "status":[Always true, unless stated otherwise.],
       }
       ONLY OUTPUT A JSON. IT WILL BREAK IF YOU DON'T OUTPUT PURE JSON.
-      The user prompt is: ${task}
       If the type of event is not mentioned, always assume it's a class.
-      The current date and time is: ${nowDate}, ${nowTime}.
+      ALWAYS ASSUME THE EVENT IS NON-RECURRING. If it is recurring, the user will tell you.
+      The current date and time is: ${nowDate}, ${nowTime}. The current day is a ${day}.
       Use the date and time as context to the event, do NOT use it directly.
       `
       console.log(content)
@@ -88,9 +91,10 @@ function App() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'Meta-Llama-3-1-8B-Instruct-FP8',
+            model: 'Mistral-Nemo-12B-Instruct-2407',
             messages: [
-                { role: 'user', content: content}
+                { role: 'system', content: content },
+                { role: 'user', content: task }
             ]
         })
     });
