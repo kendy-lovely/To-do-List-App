@@ -1,15 +1,17 @@
 import React, {useState, useEffect } from 'react'
 import './App.css';
 import '98.css'
-// import axios from 'axios';
 
 function App() {
   const BASE_URL = "https://nano-gpt.com/api/v1";
   const API_KEY = process.env.REACT_APP_NANOGPT_API_KEY;
   const maxTasks = 99;
   const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  const [tasks, setTasks] = useState([])
-  const [filteredTasks, setFilteredTasks] = useState([...tasks])
+  const [tasks, setTasks] = useState(() => {
+    const stored = localStorage.getItem('taskArray');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [displayedTasks, setDisplayedTasks] = useState(tasks)
   const [searchText, setSearchText] = useState("")
   const [newTask, setNewTask] = useState("")
   const handleInputChange = (e) => {setNewTask(e.target.value);}
@@ -17,15 +19,39 @@ function App() {
   const handleSearchFilter = () => {
     const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(escaped, "i");
-    setFilteredTasks(tasks.filter(item => pattern.test(item.name)));
+    setDisplayedTasks(tasks.filter(item => pattern.test(item.name)));
   }
+  const updateTasks = (addedTask) => {
+    setTasks([...tasks, addedTask]);
+    console.log(JSON.stringify([...tasks, addedTask]))
+  }
+  const handleSortTasks = (sortMode) => {
+    console.log(sortMode);
+    let sortedTasks = [];
+    switch (sortMode) {
+    case "date":
+      sortedTasks = [...tasks].sort((a, b) => new Date(a.machineDate) - new Date(b.machineDate));
+      break;
+    case "importance":
+      sortedTasks = [...tasks].sort((a, b) => b.important - a.important);
+      break;
+    default:
+      sortedTasks = [...tasks];
+      break;
+  }
+  setDisplayedTasks(sortedTasks);
+  console.log("sorted:", sortedTasks);
+};
+
+  useEffect(() => {
+    setDisplayedTasks(tasks)
+    localStorage.setItem('taskArray', JSON.stringify(tasks));
+  }, [tasks])
 
   function handleToggle(index){
-    const updatedTasks = tasks.map((task, i) => i === index ? { ...task, status: !task.status } : task );
+    const updatedTasks = tasks.map((task, i) => i === index ? { ...task, status: !task.status, important: task.important ? false : task.important, } : task );
     setTasks(updatedTasks);
-    setFilteredTasks(updatedTasks);
-    console.log("Updated tasks:", updatedTasks);
-    localStorage.setItem('taskArray', JSON.stringify(updatedTasks));
+    setDisplayedTasks(updatedTasks);
   }
 
   function killTask(index) {
@@ -37,11 +63,6 @@ function App() {
         setTasks(prevTasks => {
           const newTasks = prevTasks.filter((_, i) => i !== index);
           console.log("Updated tasks:", newTasks);
-          localStorage.setItem('taskArray', JSON.stringify(newTasks));
-          return newTasks;
-        });
-        setFilteredTasks(prevTasks => {
-          const newTasks = prevTasks.filter((_, i) => i !== index);
           return newTasks;
         });
         killedTask.style.translate = "0px";
@@ -49,16 +70,6 @@ function App() {
       }, 200);
     }
   } 
-
-  useEffect(() => {
-    const taskArray = localStorage.getItem('taskArray');
-    console.log(JSON.stringify(taskArray));
-    if (taskArray && taskArray.length > 0) {
-      const parsedTasks = JSON.parse(taskArray);
-      setTasks(parsedTasks);
-      setFilteredTasks(parsedTasks);
-    }
-  }, []);
 
   async function callAI(task) {
     const now = new Date();
@@ -74,8 +85,9 @@ function App() {
         "name":"[Generate a name here! Keep it short, 4-5 words maximum.]",
         "desc":"[Generate a description here! Use correct grammar in the language of the user prompt. Make it concise, target 1 sentence.]",
         "date":"[Generate a date in 'Day, Month Date, Year' (i.e. Friday, November 14th, 2025) format.]",
-        "time":"[Generate a time in HH:mm AM/PM format, NO SECONDS.]",
-        "status":[Always true, unless stated otherwise.],
+        "time":"[Generate a time in HH:mm AM/PM format [01:30 PM, 05:55 AM, 07:40 PM], NO SECONDS.]",
+        "status":[Boolean, always true, unless stated otherwise.],
+        "important":[Boolean, determine from the text if this is urgent or not. Regular classes are NOT important, deadlines and tests ARE.]
       }
       ONLY OUTPUT A JSON. IT WILL BREAK IF YOU DON'T OUTPUT PURE JSON.
       If the type of event is not mentioned, always assume it's a class.
@@ -107,17 +119,10 @@ function App() {
     return(data.choices[0].message.content)
   }
 
-  const updateTasks = (addedTask) => {
-    setTasks([...tasks, addedTask]);
-    setFilteredTasks([...tasks, addedTask]);
-    console.log(JSON.stringify([...tasks, addedTask]))
-    localStorage.setItem('taskArray', JSON.stringify([...tasks, addedTask]));
-  }
-
-
   async function handleAddTask() {
     let textBox = document.getElementById("text20");
     let searchBox = document.getElementById("text17");
+    const now = new Date();
     if ((tasks.length < maxTasks) && textBox.value) {
       const placeholderTask = {
         name : "Generating...",
@@ -125,6 +130,7 @@ function App() {
         date : "Generating...",
         time : "Generating...",
         status : false,
+        important : false,
       };
       updateTasks(placeholderTask);
       let taskAI = await callAI(newTask)
@@ -135,6 +141,8 @@ function App() {
         date : taskStuff.date,
         time : taskStuff.time,
         status : taskStuff.status,
+        important : taskStuff.important,
+        machineTime : now,
       };
       updateTasks(addedTask);
     }
@@ -144,6 +152,7 @@ function App() {
     textBox.value = "";
     searchBox.value = "";
   }
+
   /* const divArray = []
   
   for (let i = 0; i < task.length; i++) {
@@ -178,12 +187,16 @@ function App() {
       <main className='pl-2 pt-14 w-11/12'>
         <div className='flex flex-col'>
             {/* User Prompt */}
-          <label for="text17">Search:</label>
+          <label htmlFor="text17">Search:</label>
           <input id="text17" type="text" onChange={handleSearch}></input>
           <button id="submit" className='w-[10%] mt-5 mb-10' onClick={() => handleSearchFilter()}>Search</button>
-          <label for="text20">Enter your prompt:</label>
+          <label htmlFor="text20">Enter your prompt:</label>
           <textarea id="text20" rows="4" className='w-[100%]' onChange={handleInputChange}/>
-          <button id='submit' className='w-[10%] mt-5' onClick={() => handleAddTask()}>Submit</button>
+          <button id='submit' className='w-[10%] mt-5' onClick={() => handleAddTask()}>Submit</button><br/>
+          <div id='sort' className="flex flex-row gap-6">
+            <button id='submit' className='w-[10%] mt-5' onClick={() => handleSortTasks("importance")}>Sort by Importance</button>
+            <button id='submit' className='w-[10%] mt-5' onClick={() => handleSortTasks("date")}>Sort by Date</button>
+          </div>
         </div>
         {/* Spacing */}
         <div className='p-6'/>
@@ -192,8 +205,8 @@ function App() {
           <div className='flex flex-col gap-y-2'>
             <strong className='mb-[-5px]'>Your To-Do List</strong>
             <hr/>
-            <div id="taskList" className={`flex flex-col-reverse w-[100%] h-full flex-wrap lg:flex-row ${filteredTasks.length === 0 && "items-center content-center"}`}>
-              {filteredTasks.map((currentTask, index) =>
+            <div id="taskList" className={`flex flex-col-reverse w-[100%] h-full flex-wrap lg:flex-row ${displayedTasks.length === 0 && "items-center content-center"}`}>
+              {displayedTasks.map((currentTask, index) =>
               <div id={`task${index}`} className="window w-full lg:w-[350px] min-h-fit hover:-translate-y-2 transition-[opacity,translate,transform]" key={index}>
                 <div className={`title-bar text-white grid grid-flow-col grid-rows-1 ${!currentTask.status && "inactive"}`}>
                   <div className="title-bar-text w-[80%]"><p className={`break-words break-all ${!currentTask.status && "line-through"}`}>{index+1}.&nbsp;{currentTask.name}</p></div>
@@ -209,11 +222,11 @@ function App() {
                   Time: {currentTask.time}<br/>
                   Status: {currentTask.status ? "Active" : "Done!"}<br/><br/>
                   <input type="checkbox" id={index} checked={!currentTask.status} onChange={() => handleToggle(index)}/>
-                  <label for={index}>Finished?</label>
+                  <label htmlFor={index}>Finished?</label>
                 </span>
               </div>
               )}
-              {filteredTasks.length === 0 && <div className="pt-1"><strong>No tasks here!</strong></div>}
+              {displayedTasks.length === 0 && <div className="pt-1"><strong>No tasks here!</strong></div>}
             </div>
           </div>
         </div>
