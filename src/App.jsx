@@ -85,6 +85,7 @@ function App() {
   useEffect(() => {
     handleSortTasks()
     localStorage.setItem('taskArray', JSON.stringify(tasks));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, sortMode])
 
   //logic
