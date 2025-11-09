@@ -172,7 +172,7 @@ function App() {
         const addedTask = {
           name : taskAI.name,
           desc : taskAI.desc,
-          date : `${months[eventDate.getMonth()]} ${eventDate.getDate()}${nth(eventDate.getDate())}, ${eventDate.getFullYear()}`,
+          date : `${weekday[eventDate.getDay()]}, ${months[eventDate.getMonth()]} ${eventDate.getDate()}${nth(eventDate.getDate())}, ${eventDate.getFullYear()}`,
           time : `${((eventDate.getHours() % 12) < 10 ? '0' : '') + (eventDate.getHours() % 12)}:${ (eventDate.getMinutes() < 10 ? '0' : '') + eventDate.getMinutes()} ${eventDate.getHours() < 12 ? "AM" : "PM"}`,
           status : taskAI.status,
           important : taskAI.important,
