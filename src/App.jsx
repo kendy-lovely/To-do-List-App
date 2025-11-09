@@ -6,6 +6,7 @@ function App() {
   // time arrays
   const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   const months = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+  const nth = n => (n > 3) && (n < 21) ? "th" : (n % 10 === 1) ? "st" : (n % 10 === 2) ? "nd" : (n % 10 === 3) ? "rd" : "th";
 
   // useStates
   const [tasks, setTasks] = useState(() => {
@@ -62,7 +63,7 @@ function App() {
     let sortedTasks = [];
     switch (sortMode) {
     case "date":
-      sortedTasks = [...tasks].sort((a, b) => new Date(a.machineDate) - new Date(b.machineDate));
+      sortedTasks = [...tasks].sort((a, b) => new Date(a.machineTime) - new Date(b.machineTime));
       break;
     case "importance":
       sortedTasks = [...tasks].sort((a, b) => {
@@ -105,8 +106,7 @@ function App() {
       {
         "name":"[Generate a name here! Keep it short, 4-5 words maximum.]",
         "desc":"[Generate a description here! Use correct grammar in the language of the user prompt. Make it concise, target 1 sentence. Do NOT make ANY assumptions about the contents of the event that you do not know. Keep as general as possible.]",
-        "date":"[Generate a date in 'Day, Month Date, Year' (i.e. Friday, November 14th, 2025) format, ensure that the date and the day is CORRECT.]",
-        "time":"[Generate a time in HH:mm AM/PM format [01:30 PM, 05:55 AM, 07:40 PM], NO SECONDS.]",
+        "date":"[Generate a date and time for this event in ISO 8601 [example, 2025-11-09T16:59:00.000] format, ensure this is the date of the EVENT, not the current time (unless they are the same). DO NOT USE UTC FORMATTING FOR ISO 8601]",
         "status":[Boolean, always true, unless stated otherwise.],
         "important":[Boolean, determine from the name if this is urgent or important or not. Regular classes are NOT important. Deadlines, exams, tests ARE IMPORTANT.]
       }
@@ -152,7 +152,6 @@ function App() {
     let searchBox = document.getElementById("text17");
     textBox.value || alert("nah bruh");
     (textBox.value && ((tasks.length < maxTasks) || (alert(`max is ${maxTasks}`))));
-    const now = new Date();
     if ((tasks.length < maxTasks) && textBox.value) {
       const placeholderTask = {
         name : "Generating...",
@@ -166,17 +165,18 @@ function App() {
       textBox.value = "";
       searchBox.value = "";
       let taskAI = await callAI(taskInput)
+      const eventDate = new Date(taskAI.date)
       if (taskAI === 400) {
         setTasks(tasks.pop());
       } else {
         const addedTask = {
           name : taskAI.name,
           desc : taskAI.desc,
-          date : taskAI.date,
-          time : taskAI.time,
+          date : `${months[eventDate.getMonth()]} ${eventDate.getDate()}${nth(eventDate.getDate())}, ${eventDate.getFullYear()}`,
+          time : `${((eventDate.getHours() % 12) < 10 ? '0' : '') + (eventDate.getHours() % 12)}:${ (eventDate.getMinutes() < 10 ? '0' : '') + eventDate.getMinutes()} ${eventDate.getHours() < 12 ? "AM" : "PM"}`,
           status : taskAI.status,
           important : taskAI.important,
-          machineTime : now,
+          machineTime : eventDate,
         };
         addTask(addedTask);
       }
