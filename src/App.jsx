@@ -100,7 +100,7 @@ function App() {
     const msg = 
       `
       You are a planner, you are input a prompt, and you output a task.
-      The current date and time is: ${month} ${now.getDate()}th, ${now.getFullYear()} and ${nowTime}. The current day is a ${day}. This is what is referred to as today.
+      The current date and time is: ${now.toISOString()}. The current day is a ${day}. This is what is referred to as today.
       Use the date and time as context to the event, do NOT use it directly (unless told to).
       Write back a json formatted for an API, the format should be like 
       {
@@ -121,13 +121,14 @@ function App() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'Meta-Llama-3-1-8B-Instruct-FP8',
+            model: 'openai/gpt-oss-20b',
             messages: [
                 { role: 'system', content: msg },
                 { role: 'user', content: task }
             ]
         })
     });
+    console.log(msg)
     console.log(task)
     const data = await response.json();
     try {
@@ -167,7 +168,7 @@ function App() {
       let taskAI = await callAI(taskInput)
       const eventDate = new Date(taskAI.date)
       if (taskAI === 400) {
-        setTasks(tasks.pop());
+        setTasks([...tasks].pop());
       } else {
         const addedTask = {
           name : taskAI.name,
