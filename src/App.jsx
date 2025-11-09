@@ -67,10 +67,10 @@ function App() {
       break;
     case "importance":
       sortedTasks = [...tasks].sort((a, b) => {
-        if (a.important < b.important) return 1;
-        if (a.important > b.important) return -1;
         if (a.status < b.status) return 1;
         if (a.status > b.status) return -1;
+        if (a.important < b.important) return 1;
+        if (a.important > b.important) return -1;
         else return 0
       });
       break;
@@ -106,7 +106,7 @@ function App() {
       {
         "name":"[Generate a name here! Keep it short, 4-5 words maximum.]",
         "desc":"[Generate a description here! Use correct grammar in the language of the user prompt. Make it concise, target 1 sentence. Do NOT make ANY assumptions about the contents of the event that you do not know. Keep as general as possible.]",
-        "date":"[Generate a date and time for this event in ISO 8601 [example, 2025-11-09T16:59:00.000] format, ensure this is the date of the EVENT, not the current time (unless they are the same). DO NOT USE UTC FORMATTING FOR ISO 8601]",
+        "date":"[Generate a date and time for this event in ISO 8601 [example, 2025-11-09T16:59:00.000] format, ensure this is the date of the EVENT, not the current time (unless they are the same). DO NOT USE UTC FORMATTING FOR ISO 8601. The order of days is ${weekday.toString()}. For example, tomorrow from Monday is Tuesday. "in 3 days" from Tuesday is Friday. If someone says an event is on Thursday, and its Sunday today, then that is 4 days after today. A week is 7 days.]",
         "status":[Boolean, always true, unless stated otherwise.],
         "important":[Boolean, determine from the name if this is urgent or important or not. Regular classes are NOT important. Deadlines, exams, tests ARE IMPORTANT.]
       }
@@ -114,7 +114,6 @@ function App() {
       If the type of event is not mentioned, always assume it's a class.
       ALWAYS ASSUME THE EVENT IS NON-RECURRING. If it is recurring, the user will tell you.
       `
-    console.log(msg)
     const response = await fetch(`https://nano-gpt.com/api/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -122,13 +121,14 @@ function App() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'openai/gpt-oss-20b',
+            model: 'Meta-Llama-3-1-8B-Instruct-FP8',
             messages: [
                 { role: 'system', content: msg },
                 { role: 'user', content: task }
             ]
         })
     });
+    console.log(task)
     const data = await response.json();
     try {
       var content = data.choices[0].message.content
